@@ -177,6 +177,18 @@ var (
 							Usage:     "read attributes from a `JSON` file",
 							TakesFile: true,
 						},
+						&cli.BoolFlag{
+							Name:  "force-relay",
+							Usage: "Forces relay mode for the room",
+						},
+						&cli.StringSliceFlag{
+							Name:  "ice-servers",
+							Usage: "`URL` of ICE servers to use for the room. Can be used multiple times",
+						},
+						&cli.StringFlag{
+							Name:  "ice-secret",
+							Usage: "Secret for the ICE server. Mandatory when ice-servers are specified",
+						},
 					},
 				},
 				{
@@ -901,13 +913,34 @@ func joinRoom(ctx context.Context, cmd *cli.Command) error {
 		}
 	}
 
+	iceServerUrls := cmd.StringSlice("ice-servers")
+	var iceServers []*livekit.ICEServer
+	if len(iceServerUrls) > 0 {
+		iceSecret := cmd.String("ice-secret")
+		if iceSecret == "" {
+			return fmt.Errorf("--ice-secret is required when using --ice-servers")
+		}
+		credential := NewCredential(iceSecret)
+
+		iceServers = []*livekit.ICEServer{
+			{
+				Urls:       iceServerUrls,
+				Username:   credential.Username,
+				Credential: credential.Password,
+			},
+		}
+	}
+
 	room, err := lksdk.ConnectToRoom(pc.URL, lksdk.ConnectInfo{
 		APIKey:                pc.APIKey,
 		APISecret:             pc.APISecret,
 		RoomName:              roomName,
 		ParticipantIdentity:   participantIdentity,
 		ParticipantAttributes: participantAttributes,
-	}, roomCB)
+	}, roomCB,
+		lksdk.WithForceRelay(cmd.Bool("force-relay")),
+		lksdk.WithICEServers(iceServers))
+
 	if err != nil {
 		return err
 	}

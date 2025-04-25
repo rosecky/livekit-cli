@@ -4,6 +4,8 @@ go 1.23.0
 
 toolchain go1.24.2
 
+replace github.com/livekit/server-sdk-go/v2 => ../server-sdk-go
+
 require (
 	github.com/BurntSushi/toml v1.5.0
 	github.com/charmbracelet/huh v0.7.0
@@ -14,7 +16,7 @@ require (
 	github.com/go-task/task/v3 v3.42.1
 	github.com/joho/godotenv v1.5.1
 	github.com/livekit/protocol v1.36.2-0.20250417195343-7b6bf0e14f2f
-	github.com/livekit/server-sdk-go/v2 v2.6.0
+	//github.com/livekit/server-sdk-go/v2 v2.6.0
 	github.com/moby/buildkit v0.21.0
 	github.com/pion/rtcp v1.2.15
 	github.com/pion/rtp v1.8.13
@@ -119,6 +121,7 @@ require (
 	github.com/livekit/mageutil v0.0.0-20230125210925-54e8a70427c1 // indirect
 	github.com/livekit/mediatransportutil v0.0.0-20250310153736-45596af895b6 // indirect
 	github.com/livekit/psrpc v0.6.1-0.20250205181828-a0beed2e4126 // indirect
+	github.com/livekit/server-sdk-go/v2 v2.0.0-00010101000000-000000000000
 	github.com/lucasb-eyer/go-colorful v1.2.0 // indirect
 	github.com/magefile/mage v1.15.0 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
