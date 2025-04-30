@@ -144,12 +144,32 @@ func _deprecatedJoinRoom(ctx context.Context, cmd *cli.Command) error {
 			close(done)
 		},
 	}
+	iceServerUrls := cmd.StringSlice("ice-servers")
+	var iceServers []*livekit.ICEServer
+	if len(iceServerUrls) > 0 {
+		iceSecret := cmd.String("ice-secret")
+		if iceSecret == "" {
+			return fmt.Errorf("ice-secret is required when using --ice-servers")
+		}
+		credential := NewCredential(iceSecret)
+
+		iceServers = []*livekit.ICEServer{
+			{
+				Urls:       iceServerUrls,
+				Username:   credential.Username,
+				Credential: credential.Password,
+			},
+		}
+	}
+
 	room, err := lksdk.ConnectToRoom(pc.URL, lksdk.ConnectInfo{
 		APIKey:              pc.APIKey,
 		APISecret:           pc.APISecret,
 		RoomName:            cmd.String("room"),
 		ParticipantIdentity: cmd.String("identity"),
-	}, roomCB)
+	}, roomCB,
+		lksdk.WithForceRelay(cmd.Bool("force-relay")),
+		lksdk.WithICEServers(iceServers))
 	if err != nil {
 		return err
 	}
