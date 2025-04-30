@@ -18,3 +18,8 @@ bin/
 dist/
 
 .DS_Store
+.vscode/launch.json
+.gitignore
+server-sdk-go/
+k8s/
+launch.json

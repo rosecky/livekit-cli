@@ -23,6 +23,9 @@ WORKDIR /workspace
 # Copy the Go Modules manifests
 COPY go.mod go.mod
 COPY go.sum go.sum
+# Copy the server-sdk-go directory to resolve the replace directive
+COPY ./server-sdk-go /workspace/server-sdk-go
+
 # cache deps before building and copying source so that we don't need to re-download as much
 # and so that source changes don't invalidate our downloaded layer
 RUN go mod download
@@ -37,6 +40,9 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=$TARGETARCH go build -a -o lk ./cmd/lk
 FROM alpine:3.21
 
 COPY --from=builder /workspace/lk /lk
+
+# Expose port 9090 for metrics or other services
+EXPOSE 9090
 
 # Run the binary.
 ENTRYPOINT ["/lk"]
