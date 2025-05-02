@@ -29,14 +29,21 @@ import (
 	livekitcli "github.com/livekit/livekit-cli/v2"
 )
 
+type appDidntRunForEnoughTimeError struct{}
+
+func (appDidntRunForEnoughTimeError) Error() string {
+	return "app didn't run for the requested amount of time"
+}
+func (appDidntRunForEnoughTimeError) Timeout() bool   { return true }
+func (appDidntRunForEnoughTimeError) Temporary() bool { return true }
+
 func main() {
 
 	mustRunFor := parseMustRunFor(os.Args)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	if mustRunFor > 0 {
-		// Create a context with a 30-second timeout
-		ctx, cancel = context.WithTimeout(context.Background(), 30*time.Second)
+		ctx, cancel = context.WithTimeout(context.Background(), mustRunFor)
 	}
 
 	defer cancel()
@@ -44,16 +51,14 @@ func main() {
 	// Run the application with the provided arguments
 	err := runApp(ctx, os.Args)
 
-	success := err == nil // we finished without error = success
 	if mustRunFor > 0 {
-		success = err == context.DeadlineExceeded // we ran out of time and nothing happened = success
+		if err != context.DeadlineExceeded { // we ran out of time and nothing happened = success
+			err = appDidntRunForEnoughTimeError{}
+		}
 	}
 
-	if success {
-		// success
-		os.Exit(0)
-	} else {
-		// failure
+	if err != nil {
+		logger.Errorw("test failed", err)
 		os.Exit(1)
 	}
 }

@@ -947,6 +947,7 @@ func joinRoom(ctx context.Context, cmd *cli.Command) error {
 		lksdk.WithICEServers(iceServers))
 
 	if err != nil {
+		logger.Errorw("cannot connect to room", err)
 		return err
 	}
 	defer room.Disconnect()
