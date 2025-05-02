@@ -17,7 +17,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"net/http"
 	"os"
 	"strings"
 	"time"
@@ -28,56 +27,65 @@ import (
 	lksdk "github.com/livekit/server-sdk-go/v2"
 
 	livekitcli "github.com/livekit/livekit-cli/v2"
-
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promauto"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
-)
-
-var (
-	successes = promauto.NewCounter(prometheus.CounterOpts{
-		Name: "lk_test_success_total",
-		Help: "The total number of successful livekit test operations",
-	})
-	failures = promauto.NewCounter(prometheus.CounterOpts{
-		Name: "lk_test_failure_total",
-		Help: "The total number of failed livekit test operations",
-	})
 )
 
 func main() {
-	// Start Prometheus metrics server
-	go func() {
-		http.Handle("/metrics", promhttp.Handler())
-		if err := http.ListenAndServe(":9090", nil); err != nil {
-			fmt.Fprintf(os.Stderr, "Error starting Prometheus metrics server: %v\n", err)
-		}
-	}()
 
-	// Create a context with a 30-second timeout
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	mustRunFor := parseMustRunFor(os.Args)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	if mustRunFor > 0 {
+		// Create a context with a 30-second timeout
+		ctx, cancel = context.WithTimeout(context.Background(), 30*time.Second)
+	}
+
 	defer cancel()
 
 	// Run the application with the provided arguments
 	err := runApp(ctx, os.Args)
 
-	success := err == context.DeadlineExceeded // we ran out of time and nothing happened = success
+	success := err == nil // we finished without error = success
+	if mustRunFor > 0 {
+		success = err == context.DeadlineExceeded // we ran out of time and nothing happened = success
+	}
 
 	if success {
 		// success
-		successes.Inc()
+		os.Exit(0)
 	} else {
-
 		// failure
-		failures.Inc()
+		os.Exit(1)
+	}
+}
 
-		if err == nil {
-			// no error but finished too early for some reason
-			fmt.Fprintf(os.Stderr, "Application finished too quickly")
-		} else {
-			fmt.Fprintf(os.Stderr, "Application failed: %v\n", err)
+func parseMustRunFor(args []string) time.Duration {
+	var mustRunForFlag string
+
+	// Iterate through command-line arguments to find --must-run-for
+	for i, arg := range args {
+		if strings.HasPrefix(arg, "--must-run-for=") {
+			// Handle --must-run-for=<x>
+			mustRunForFlag = strings.TrimPrefix(arg, "--must-run-for=")
+			break
+		} else if arg == "--must-run-for" && i+1 < len(args) {
+			// Handle --must-run-for <x>
+			mustRunForFlag = args[i+1]
+			break
 		}
 	}
+
+	if mustRunForFlag == "" {
+		return 0 // Default to 0 if --must-run-for is not provided
+	}
+
+	// Parse the duration
+	duration, err := time.ParseDuration(mustRunForFlag)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Invalid duration for --must-run-for: %v\n", err)
+		os.Exit(1)
+	}
+
+	return duration
 }
 
 // runApp runs the application with the given arguments and handles its lifecycle

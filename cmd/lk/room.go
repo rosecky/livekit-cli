@@ -189,6 +189,10 @@ var (
 							Name:  "ice-secret",
 							Usage: "Secret for the ICE server. Mandatory when ice-servers are specified",
 						},
+						&cli.StringFlag{
+							Name:  "must-run-for",
+							Usage: "States how long must the app run without error in order to be considered successful.",
+						},
 					},
 				},
 				{
@@ -606,6 +610,7 @@ func createRoom(ctx context.Context, cmd *cli.Command) error {
 		if err != nil {
 			return err
 		}
+
 		if err = protojson.Unmarshal(b, participantEgress); err != nil {
 			return err
 		}
