@@ -52,7 +52,9 @@ func main() {
 	err := runApp(ctx, os.Args)
 
 	if mustRunFor > 0 {
-		if err != context.DeadlineExceeded { // we ran out of time and nothing happened = success
+		if err == context.DeadlineExceeded { // we ran out of time and nothing happened = success
+			err = nil
+		} else {
 			err = appDidntRunForEnoughTimeError{}
 		}
 	}
